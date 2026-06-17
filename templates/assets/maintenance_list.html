@@ -64,6 +64,35 @@
     .badge-type.corrective { background: #85500b22; color: #ef9f27; }
     .badge-type.urgent { background: #a32d2d22; color: #e24b4a; }
     
+    /* Boutons de statut */
+    .status-actions { display: flex; gap: 4px; align-items: center; }
+    .btn-status {
+        width: 32px;
+        height: 32px;
+        border-radius: 8px;
+        border: 0.5px solid #2d3148;
+        background: #1a1d27;
+        color: #9ca3af;
+        cursor: pointer;
+        transition: all 0.2s;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 13px;
+    }
+    .btn-status:hover { transform: translateY(-2px); background: #1f2235; }
+    .btn-status:disabled { opacity: 0.4; cursor: not-allowed; transform: none; }
+    
+    .btn-status.pending:hover { border-color: #378add; color: #378add; }
+    .btn-status.in_progress:hover { border-color: #ef9f27; color: #ef9f27; }
+    .btn-status.completed:hover { border-color: #1d9e75; color: #1d9e75; }
+    .btn-status.failed:hover { border-color: #e24b4a; color: #e24b4a; }
+    
+    .btn-status.active-pending { background: #185fa520; color: #378add; border-color: #378add; }
+    .btn-status.active-in_progress { background: #85500b20; color: #ef9f27; border-color: #ef9f27; }
+    .btn-status.active-completed { background: #0f6e5620; color: #1d9e75; border-color: #1d9e75; }
+    .btn-status.active-failed { background: #a32d2d20; color: #e24b4a; border-color: #e24b4a; }
+    
     .btn-action { background: #1a1d27; border: 0.5px solid #2d3148; border-radius: 8px; padding: 6px 12px; color: #9ca3af; font-size: 14px; text-decoration: none; display: inline-flex; align-items: center; gap: 6px; transition: all 0.2s; }
     .btn-action:hover { background: #1f2235; color: #e2e8f0; }
     .btn-action.primary { color: #4a90d9; }
@@ -72,6 +101,36 @@
     .empty-state i { font-size: 56px; color: #2d3148; margin-bottom: 16px; display: block; }
     .empty-state h3 { color: #e2e8f0; font-size: 20px; margin-bottom: 10px; }
     .empty-state p { color: #6b7280; font-size: 15px; }
+    
+    /* Notification Toast */
+    @keyframes slideIn {
+        from { transform: translateX(100%); opacity: 0; }
+        to { transform: translateX(0); opacity: 1; }
+    }
+    @keyframes slideOut {
+        from { transform: translateX(0); opacity: 1; }
+        to { transform: translateX(100%); opacity: 0; }
+    }
+    .toast-notification {
+        position: fixed;
+        bottom: 20px;
+        right: 20px;
+        padding: 12px 24px;
+        border-radius: 10px;
+        z-index: 9999;
+        font-size: 14px;
+        font-weight: 500;
+        animation: slideIn 0.3s ease;
+        box-shadow: 0 4px 20px rgba(0,0,0,0.3);
+        max-width: 400px;
+        display: flex;
+        align-items: center;
+        gap: 10px;
+    }
+    .toast-notification.success { background: #0f6e5620; color: #1d9e75; border: 0.5px solid #0f6e5640; }
+    .toast-notification.error { background: #a32d2d20; color: #e24b4a; border: 0.5px solid #a32d2d40; }
+    .toast-notification.info { background: #185fa520; color: #378add; border: 0.5px solid #185fa540; }
+    .toast-notification.hiding { animation: slideOut 0.3s ease forwards; }
     
     @media (max-width: 1024px) {
         .stats-row { grid-template-columns: 1fr 1fr; }
@@ -83,11 +142,14 @@
         .table-search input { min-width: auto; width: 100%; }
         .filter-bar { flex-direction: column; align-items: stretch; }
         .filter-bar select { width: 100%; }
+        .status-actions { flex-wrap: wrap; }
+        .toast-notification { max-width: 90%; right: 5%; bottom: 10px; }
     }
 </style>
 {% endblock %}
 
 {% block content %}
+<!-- Stats -->
 <div class="stats-row">
     <div class="stat-card">
         <div class="stat-icon blue"><i class="fas fa-tools"></i></div>
@@ -111,6 +173,7 @@
     </div>
 </div>
 
+<!-- Filter Bar -->
 <div class="filter-bar">
     <label><i class="fas fa-filter"></i> Filtres :</label>
     <select id="typeFilter" onchange="filterTable()">
@@ -136,6 +199,7 @@
     {% endif %}
 </div>
 
+<!-- Table -->
 <div class="table-card">
     <div class="table-header">
         <div class="table-title"><i class="fas fa-list" style="color:#4a90d9;"></i>Historique des interventions</div>
@@ -160,7 +224,7 @@
                 </thead>
                 <tbody>
                     {% for log in maintenance_logs %}
-                        <tr data-type="{{ log.maintenance_type }}" data-status="{{ log.status }}" data-equipment="{{ log.equipment.id }}">
+                        <tr data-maintenance-id="{{ log.id }}" data-type="{{ log.maintenance_type }}" data-status="{{ log.status }}" data-equipment="{{ log.equipment.id }}">
                             <td>
                                 <div class="equip-cell">
                                     <div class="equip-icon">
@@ -191,7 +255,7 @@
                                 <div style="font-size:12px;color:#4b5563;">{{ log.intervention_date|date:"H:i" }}</div>
                             </td>
                             <td>
-                                <span class="badge-status {{ log.status|lower }}">
+                                <span class="badge-status {{ log.status|lower }}" id="status-badge-{{ log.id }}">
                                     <i class="fas 
                                         {% if log.status == 'COMPLETED' %}fa-check-circle
                                         {% elif log.status == 'IN_PROGRESS' %}fa-spinner
@@ -202,7 +266,32 @@
                                 </span>
                             </td>
                             <td style="text-align:right;">
-                                <a href="{% url 'assets:equipment_detail' log.equipment.id %}" class="btn-action primary"><i class="fas fa-eye"></i></a>
+                                <div style="display:flex;gap:6px;justify-content:flex-end;flex-wrap:wrap;">
+                                    <!-- Boutons de changement de statut -->
+                                    <div class="status-actions">
+                                        <button onclick="updateStatus({{ log.id }}, 'PENDING')" 
+                                                class="btn-status pending {% if log.status == 'PENDING' %}active-pending{% endif %}" 
+                                                title="En attente">
+                                            <i class="fas fa-clock"></i>
+                                        </button>
+                                        <button onclick="updateStatus({{ log.id }}, 'IN_PROGRESS')" 
+                                                class="btn-status in_progress {% if log.status == 'IN_PROGRESS' %}active-in_progress{% endif %}" 
+                                                title="En cours">
+                                            <i class="fas fa-spinner"></i>
+                                        </button>
+                                        <button onclick="updateStatus({{ log.id }}, 'COMPLETED')" 
+                                                class="btn-status completed {% if log.status == 'COMPLETED' %}active-completed{% endif %}" 
+                                                title="Terminé">
+                                            <i class="fas fa-check"></i>
+                                        </button>
+                                        <button onclick="updateStatus({{ log.id }}, 'FAILED')" 
+                                                class="btn-status failed {% if log.status == 'FAILED' %}active-failed{% endif %}" 
+                                                title="Échec">
+                                            <i class="fas fa-times"></i>
+                                        </button>
+                                    </div>
+                                    <a href="{% url 'assets:equipment_detail' log.equipment.id %}" class="btn-action primary"><i class="fas fa-eye"></i></a>
+                                </div>
                             </td>
                         </tr>
                     {% endfor %}
@@ -222,8 +311,11 @@
         {% endif %}
     </div>
 </div>
+{% endblock %}
 
+{% block extra_js %}
 <script>
+    // Fonction de filtrage
     function filterTable() {
         const searchInput = document.getElementById('searchInput');
         const typeFilter = document.getElementById('typeFilter');
@@ -262,6 +354,131 @@
             
             row.style.display = (matchType && matchStatus && matchEquip && foundText) ? '' : 'none';
         }
+    }
+
+    // Mise à jour du statut
+    function updateStatus(maintenanceId, newStatus) {
+        // Confirmation pour les changements importants
+        if (newStatus === 'FAILED') {
+            if (!confirm('⚠️ Confirmer le passage en statut "Échec" ? Cette action est irréversible.')) {
+                return;
+            }
+        }
+        if (newStatus === 'COMPLETED') {
+            if (!confirm('✅ Confirmer que la maintenance est terminée ?')) {
+                return;
+            }
+        }
+        
+        // Désactiver les boutons pendant le chargement
+        const buttons = document.querySelectorAll(`[onclick*="updateStatus(${maintenanceId},"]`);
+        buttons.forEach(btn => btn.disabled = true);
+        
+        fetch(`/maintenances/${maintenanceId}/update-status/`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': getCookie('csrftoken')
+            },
+            body: JSON.stringify({ status: newStatus })
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                // Mettre à jour l'affichage
+                const row = document.querySelector(`[data-maintenance-id="${maintenanceId}"]`);
+                if (row) {
+                    // Mettre à jour le badge de statut
+                    const statusBadge = document.getElementById(`status-badge-${maintenanceId}`);
+                    if (statusBadge) {
+                        const statusLabels = {
+                            'PENDING': 'En attente',
+                            'IN_PROGRESS': 'En cours',
+                            'COMPLETED': 'Terminé',
+                            'FAILED': 'Échec'
+                        };
+                        const statusIcons = {
+                            'PENDING': 'fa-clock',
+                            'IN_PROGRESS': 'fa-spinner',
+                            'COMPLETED': 'fa-check-circle',
+                            'FAILED': 'fa-times-circle'
+                        };
+                        statusBadge.className = `badge-status ${newStatus.toLowerCase()}`;
+                        statusBadge.innerHTML = `<i class="fas ${statusIcons[newStatus]}" style="font-size:11px;"></i> ${statusLabels[newStatus]}`;
+                    }
+                    
+                    // Mettre à jour le data-status de la ligne
+                    row.dataset.status = newStatus;
+                    
+                    // Mettre à jour les boutons (style actif)
+                    const statusButtons = row.querySelectorAll('.btn-status');
+                    const statusMap = {
+                        'PENDING': 'pending',
+                        'IN_PROGRESS': 'in_progress',
+                        'COMPLETED': 'completed',
+                        'FAILED': 'failed'
+                    };
+                    statusButtons.forEach(btn => {
+                        btn.className = 'btn-status';
+                        const btnStatus = btn.getAttribute('onclick')?.match(/'([^']+)'/)?.[1];
+                        if (btnStatus === newStatus) {
+                            btn.classList.add(`active-${statusMap[newStatus]}`);
+                        }
+                        btn.disabled = false;
+                    });
+                }
+                
+                // Notification
+                showNotification(data.message, 'success');
+            } else {
+                showNotification(data.error || 'Erreur lors de la mise à jour', 'error');
+                // Réactiver les boutons en cas d'erreur
+                const buttons = document.querySelectorAll(`[onclick*="updateStatus(${maintenanceId},"]`);
+                buttons.forEach(btn => btn.disabled = false);
+            }
+        })
+        .catch(error => {
+            showNotification('Erreur de connexion: ' + error.message, 'error');
+            const buttons = document.querySelectorAll(`[onclick*="updateStatus(${maintenanceId},"]`);
+            buttons.forEach(btn => btn.disabled = false);
+        });
+    }
+
+    // Notification Toast
+    function showNotification(message, type) {
+        // Supprimer les notifications existantes
+        const existing = document.querySelector('.toast-notification');
+        if (existing) {
+            existing.classList.add('hiding');
+            setTimeout(() => existing.remove(), 300);
+        }
+        
+        const toast = document.createElement('div');
+        toast.className = `toast-notification ${type}`;
+        const icon = type === 'success' ? 'fa-check-circle' : type === 'error' ? 'fa-exclamation-circle' : 'fa-info-circle';
+        toast.innerHTML = `<i class="fas ${icon}"></i> ${message}`;
+        document.body.appendChild(toast);
+        
+        setTimeout(() => {
+            toast.classList.add('hiding');
+            setTimeout(() => toast.remove(), 300);
+        }, 3000);
+    }
+
+    // Récupérer le CSRF token
+    function getCookie(name) {
+        let cookieValue = null;
+        if (document.cookie && document.cookie !== '') {
+            const cookies = document.cookie.split(';');
+            for (let i = 0; i < cookies.length; i++) {
+                const cookie = cookies[i].trim();
+                if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                    cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                    break;
+                }
+            }
+        }
+        return cookieValue;
     }
 </script>
 {% endblock %}

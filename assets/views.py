@@ -205,3 +205,39 @@ def maintenance_list(request):
         'failed_count': failed_count,
     }
     return render(request, 'assets/maintenance_list.html', context)
+
+
+@csrf_exempt
+@require_http_methods(["POST"])
+def update_maintenance_status(request, maintenance_id):
+    """Mettre à jour le statut d'une maintenance"""
+    try:
+        data = json.loads(request.body)
+        new_status = data.get('status')
+        
+        if not new_status:
+            return JsonResponse({'error': 'Statut requis'}, status=400)
+        
+        # Vérifier que le statut est valide
+        valid_statuses = ['PENDING', 'IN_PROGRESS', 'COMPLETED', 'FAILED']
+        if new_status not in valid_statuses:
+            return JsonResponse({'error': 'Statut invalide'}, status=400)
+        
+        maintenance = MaintenanceLog.objects.get(id=maintenance_id)
+        old_status = maintenance.status
+        maintenance.status = new_status
+        maintenance.save()
+        
+        return JsonResponse({
+            'success': True,
+            'message': f'Statut mis à jour de {old_status} à {new_status}',
+            'new_status': new_status,
+            'old_status': old_status
+        })
+        
+    except MaintenanceLog.DoesNotExist:
+        return JsonResponse({'error': 'Maintenance non trouvée'}, status=404)
+    except json.JSONDecodeError:
+        return JsonResponse({'error': 'Format JSON invalide'}, status=400)
+    except Exception as e:
+        return JsonResponse({'error': str(e)}, status=500)
