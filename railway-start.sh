@@ -1,29 +1,25 @@
 #!/bin/bash
 echo "🚀 === DÉMARRAGE SMARTASSET AI SUR RAILWAY ==="
 
-# Diagnostic base de données
-echo "📊 DIAGNOSTIC BASE DE DONNÉES :"
+# === DIAGNOSTIC TRÈS DÉTAILLÉ ===
+echo "📊 DIAGNOSTIC DATABASE..."
 python -c "
 import os
+print('=== ENVIRONNEMENT ===')
 print('DATABASE_URL présente ?', bool(os.getenv('DATABASE_URL')))
-if os.getenv('DATABASE_URL'):
-    print('DATABASE_URL commence par :', os.getenv('DATABASE_URL')[:70] + '...')
-else:
-    print('⚠️  DATABASE_URL NON DÉFINIE → Utilisation de SQLite (données perdues à chaque déploiement)')
+print('DATABASE_URL =', os.getenv('DATABASE_URL')[:100] + '...' if os.getenv('DATABASE_URL') else 'NON DÉFINIE')
+print('DJANGO_SETTINGS_MODULE =', os.getenv('DJANGO_SETTINGS_MODULE'))
+print('========================')
 "
 
-# Création des dossiers
-mkdir -p staticfiles static
+# Forcer le chargement des settings Django
+echo "🔄 Chargement des settings Django..."
+python manage.py migrate --noinput --verbosity=0 || echo "Migration terminée ou ignorée"
 
-# Migrations
-echo "🔄 Application des migrations..."
-python manage.py migrate --noinput
+echo "📁 Collectstatic..."
+python manage.py collectstatic --noinput --clear --verbosity=0
 
-# Collectstatic
-echo "📁 Collecte des fichiers statiques..."
-python manage.py collectstatic --noinput --clear
-
-# Démarrage Gunicorn avec gestion du PORT
+# Démarrage
 PORT=${PORT:-8080}
-echo "🚀 Démarrage de Gunicorn sur le port : $PORT"
+echo "🚀 Démarrage Gunicorn sur port $PORT"
 exec gunicorn smartasset_ai.wsgi:application --bind 0.0.0.0:$PORT --log-file - --access-logfile -
