@@ -1,0 +1,1 @@
+web: gunicorn smartasset_ai.wsgi:application
