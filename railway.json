@@ -1,0 +1,9 @@
+{
+  "build": {
+    "builder": "RAILPACK"
+  },
+  "deploy": {
+    "startCommand": "./railway-start.sh",
+    "restartPolicy": "ON_FAILURE"
+  }
+}
