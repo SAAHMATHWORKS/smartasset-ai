@@ -1,0 +1,139 @@
+{% extends 'base.html' %}
+
+{% block title %}Ajouter une maintenance{% endblock %}
+
+{% block page_title %}<i class="fas fa-tools" style="color:#ef9f27;"></i> Ajouter une maintenance{% endblock %}
+{% block page_sub %}pour {{ equipment.name }} ({{ equipment.reference }}){% endblock %}
+
+{% block topbar_actions %}
+    <a href="{% url 'assets:equipment_detail' equipment.id %}" class="tb-btn"><i class="fas fa-arrow-left"></i>Retour</a>
+{% endblock %}
+
+{% block extra_css %}
+<style>
+    .form-card { background: #1a1d27; border: 0.5px solid #2d3148; border-radius: 12px; padding: 32px; max-width: 800px; margin: 0 auto; }
+    .form-title { font-size: 22px; font-weight: 600; color: #fff; margin-bottom: 6px; }
+    .form-sub { font-size: 15px; color: #6b7280; margin-bottom: 28px; }
+    
+    .equipment-badge { display: inline-flex; align-items: center; gap: 10px; background: #0f1117; border: 0.5px solid #2d3148; border-radius: 10px; padding: 8px 18px; font-size: 15px; color: #9ca3af; margin-top: 4px; }
+    .equipment-badge i { color: #4a90d9; font-size: 18px; }
+    .equipment-badge strong { color: #e2e8f0; }
+    
+    .form-group { margin-bottom: 24px; }
+    .form-group label { display: block; font-size: 14px; font-weight: 500; color: #e2e8f0; margin-bottom: 8px; }
+    .form-group label .required { color: #e24b4a; margin-left: 3px; }
+    .form-group .help-text { font-size: 13px; color: #6b7280; margin-top: 6px; }
+    
+    .form-control { width: 100%; padding: 12px 16px; background: #0f1117; border: 0.5px solid #2d3148; border-radius: 10px; color: #e2e8f0; font-size: 15px; transition: border-color 0.3s; }
+    .form-control:focus { outline: none; border-color: #4a90d9; box-shadow: 0 0 0 3px rgba(74, 144, 217, 0.1); }
+    .form-control::placeholder { color: #4b5563; }
+    
+    select.form-control { appearance: none; background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='14' height='14' viewBox='0 0 12 12'%3E%3Cpath fill='%236b7280' d='M6 8L1 3h10z'/%3E%3C/svg%3E"); background-repeat: no-repeat; background-position: right 14px center; padding-right: 40px; }
+    select.form-control option { background: #1a1d27; color: #e2e8f0; padding: 8px; }
+    
+    textarea.form-control { resize: vertical; min-height: 100px; font-family: inherit; }
+    
+    .form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 24px; }
+    .form-row-3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 24px; }
+    
+    .form-actions { display: flex; gap: 16px; margin-top: 8px; padding-top: 24px; border-top: 0.5px solid #2d3148; }
+    .btn { display: inline-flex; align-items: center; gap: 10px; padding: 12px 32px; border: none; border-radius: 10px; font-size: 15px; font-weight: 500; cursor: pointer; text-decoration: none; transition: all 0.2s; }
+    .btn-success { background: #0f6e56; color: #fff; }
+    .btn-success:hover { background: #0d5c47; transform: translateY(-2px); }
+    .btn-danger { background: #a32d2d; color: #fff; }
+    .btn-danger:hover { background: #8a2626; transform: translateY(-2px); }
+    
+    @media (max-width: 768px) {
+        .form-row { grid-template-columns: 1fr; }
+        .form-row-3 { grid-template-columns: 1fr; }
+        .form-card { padding: 20px; }
+        .form-actions { flex-direction: column; }
+        .form-actions .btn { justify-content: center; }
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="form-card">
+    <div class="form-title"><i class="fas fa-tools" style="color:#ef9f27;margin-right:10px;"></i>Nouvelle intervention</div>
+    <div class="form-sub">
+        <span class="equipment-badge">
+            <i class="fas fa-microchip"></i>
+            <strong>{{ equipment.name }}</strong>
+            <span style="color:#4b5563;">|</span>
+            {{ equipment.reference }}
+        </span>
+    </div>
+
+    <form method="post">
+        {% csrf_token %}
+        
+        <div class="form-row">
+            <div class="form-group">
+                <label>Type de maintenance <span class="required">*</span></label>
+                <select name="maintenance_type" class="form-control" required>
+                    <option value="">Sélectionner un type</option>
+                    {% for value, label in maintenance_types %}
+                        <option value="{{ value }}">{{ label }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+
+            <div class="form-group">
+                <label>Statut</label>
+                <select name="status" class="form-control">
+                    {% for value, label in status_choices %}
+                        <option value="{{ value }}" {% if value == 'PENDING' %}selected{% endif %}>{{ label }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+        </div>
+
+        <div class="form-group">
+            <label>Description de l'intervention <span class="required">*</span></label>
+            <textarea name="description" class="form-control" rows="4" required placeholder="Décrivez l'intervention en détail..."></textarea>
+        </div>
+
+        <div class="form-row">
+            <div class="form-group">
+                <label>Nom du technicien <span class="required">*</span></label>
+                <input type="text" name="technician_name" class="form-control" required placeholder="Nom du technicien">
+            </div>
+
+            <div class="form-group">
+                <label>Date d'intervention <span class="required">*</span></label>
+                <input type="datetime-local" name="intervention_date" class="form-control" required>
+            </div>
+        </div>
+
+        <div class="form-row-3">
+            <div class="form-group">
+                <label>Durée (heures)</label>
+                <input type="number" name="duration_hours" class="form-control" value="1.0" step="0.5" min="0.5">
+                <div class="help-text"><i class="fas fa-clock"></i> Durée estimée en heures</div>
+            </div>
+
+            <div class="form-group">
+                <label>Pièces utilisées</label>
+                <input type="text" name="parts_used" class="form-control" placeholder="Ex: Filtre à air, Thermostat...">
+            </div>
+
+            <div class="form-group">
+                <label>Coût (FCFA)</label>
+                <input type="number" name="cost" class="form-control" placeholder="0" step="1000">
+                <div class="help-text"><i class="fas fa-money-bill"></i> Coût total de l'intervention</div>
+            </div>
+        </div>
+
+        <div class="form-group">
+            <label>Notes supplémentaires</label>
+            <textarea name="notes" class="form-control" rows="3" placeholder="Informations complémentaires..."></textarea>
+        </div>
+
+        <div class="form-actions">
+            <button type="submit" class="btn btn-success"><i class="fas fa-save"></i>Enregistrer</button>
+            <a href="{% url 'assets:equipment_detail' equipment.id %}" class="btn btn-danger"><i class="fas fa-times"></i>Annuler</a>
+        </div>
+    </form>
+</div>
+{% endblock %}

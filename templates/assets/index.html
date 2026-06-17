@@ -1,0 +1,291 @@
+{% extends 'base.html' %}
+
+{% block title %}Dashboard{% endblock %}
+
+{% block page_title %}<i class="fas fa-chart-pie" style="color:#4a90d9;"></i> Dashboard{% endblock %}
+{% block page_sub %}{% now "l d F Y" %} — FAYAHOTEL{% endblock %}
+
+{% block topbar_actions %}
+    <a href="#" class="tb-btn"><i class="fas fa-sync-alt"></i>Actualiser</a>
+    <a href="{% url 'assets:equipment_add' %}" class="tb-btn primary"><i class="fas fa-plus"></i>Nouvel équipement</a>
+    <a href="{% url 'assets:chat_view' %}" class="tb-btn success"><i class="fas fa-robot"></i>Chat IA</a>
+    <div class="notif-btn"><i class="fas fa-bell"></i><div class="notif-dot"></div></div>
+{% endblock %}
+
+{% block extra_css %}
+<style>
+    .kpi-row { display: grid; grid-template-columns: repeat(4, minmax(0,1fr)); gap: 18px; margin-bottom: 24px; }
+    .kpi { background: #1a1d27; border: 0.5px solid #2d3148; border-radius: 12px; padding: 20px; }
+    .kpi-label { font-size: 12px; color: #6b7280; text-transform: uppercase; letter-spacing: 0.8px; margin-bottom: 8px; font-weight: 600; }
+    .kpi-val { font-size: 32px; font-weight: 600; color: #fff; line-height: 1.2; }
+    .kpi-sub { font-size: 13px; margin-top: 8px; display: flex; align-items: center; gap: 6px; }
+    .kpi-up { color: #1d9e75; }
+    .kpi-down { color: #e24b4a; }
+    .kpi-icon { float: right; margin-top: -40px; width: 44px; height: 44px; border-radius: 10px; display: flex; align-items: center; justify-content: center; font-size: 20px; }
+    .kpi-icon.blue { background: #0c447c22; color: #4a90d9; }
+    .kpi-icon.amber { background: #85500b22; color: #ef9f27; }
+    .kpi-icon.green { background: #0f6e5622; color: #1d9e75; }
+    .kpi-icon.red { background: #a32d2d22; color: #e24b4a; }
+    
+    .grid2 { display: grid; grid-template-columns: 1fr 380px; gap: 18px; margin-bottom: 18px; }
+    .grid3 { display: grid; grid-template-columns: repeat(3, minmax(0,1fr)); gap: 18px; }
+    .card { background: #1a1d27; border: 0.5px solid #2d3148; border-radius: 12px; }
+    .card-header { padding: 16px 20px; border-bottom: 0.5px solid #2d3148; display: flex; align-items: center; justify-content: space-between; }
+    .card-title { font-size: 16px; font-weight: 500; color: #e2e8f0; display: flex; align-items: center; gap: 8px; }
+    .card-action { font-size: 14px; color: #4a90d9; cursor: pointer; text-decoration: none; }
+    
+    .equip-list { padding: 8px 0; }
+    .equip-row { display: flex; align-items: center; padding: 12px 20px; gap: 14px; border-bottom: 0.5px solid #1f2235; }
+    .equip-row:last-child { border-bottom: none; }
+    .equip-icon { width: 44px; height: 44px; border-radius: 10px; display: flex; align-items: center; justify-content: center; font-size: 18px; flex-shrink: 0; }
+    .equip-icon.ac { background: #0c447c22; color: #4a90d9; }
+    .equip-icon.gen { background: #85500b22; color: #ef9f27; }
+    .equip-icon.fridge { background: #185fa522; color: #378add; }
+    .equip-icon.default { background: #2d3148; color: #9ca3af; }
+    .equip-name { font-size: 15px; color: #e2e8f0; font-weight: 500; }
+    .equip-loc { font-size: 13px; color: #6b7280; margin-top: 2px; }
+    .equip-right { margin-left: auto; text-align: right; }
+    
+    .risk-bar-wrap { width: 100px; height: 6px; background: #2d3148; border-radius: 3px; margin-bottom: 4px; margin-left: auto; }
+    .risk-bar { height: 6px; border-radius: 3px; }
+    .risk-val { font-size: 13px; }
+    .risk-val.low { color: #1d9e75; }
+    .risk-val.med { color: #ef9f27; }
+    .risk-val.high { color: #e24b4a; }
+    
+    .status-pill { display: inline-flex; align-items: center; gap: 6px; font-size: 13px; border-radius: 20px; padding: 4px 12px; font-weight: 500; }
+    .status-pill.ok { background: #0f6e5620; color: #1d9e75; }
+    .status-pill.warn { background: #85500b20; color: #ef9f27; }
+    .status-pill.crit { background: #a32d2d20; color: #e24b4a; }
+    .status-pill.maint { background: #185fa520; color: #378add; }
+    .dot { width: 8px; height: 8px; border-radius: 50%; background: currentColor; }
+    
+    .alerts-list { padding: 8px 0; }
+    .alert-item { display: flex; align-items: flex-start; gap: 12px; padding: 12px 20px; border-bottom: 0.5px solid #1f2235; }
+    .alert-item:last-child { border-bottom: none; }
+    .alert-dot { width: 10px; height: 10px; border-radius: 50%; margin-top: 4px; flex-shrink: 0; }
+    .alert-dot.crit { background: #e24b4a; }
+    .alert-dot.warn { background: #ef9f27; }
+    .alert-dot.info { background: #4a90d9; }
+    .alert-text { font-size: 14px; color: #9ca3af; line-height: 1.5; }
+    .alert-text strong { color: #e2e8f0; display: block; margin-bottom: 2px; font-weight: 500; }
+    .alert-time { font-size: 13px; color: #4b5563; margin-left: auto; flex-shrink: 0; }
+    
+    .mini-chart { padding: 20px; }
+    .chart-bar-row { display: flex; align-items: center; gap: 12px; margin-bottom: 12px; }
+    .chart-bar-label { font-size: 13px; color: #6b7280; width: 80px; flex-shrink: 0; }
+    .chart-bar-bg { flex: 1; height: 8px; background: #2d3148; border-radius: 4px; overflow: hidden; }
+    .chart-bar-fill { height: 100%; border-radius: 4px; }
+    .chart-bar-val { font-size: 13px; color: #9ca3af; width: 40px; text-align: right; font-weight: 500; }
+    
+    .ai-chat { padding: 16px 20px; }
+    .chat-msg { display: flex; gap: 12px; margin-bottom: 14px; }
+    .chat-av { width: 32px; height: 32px; border-radius: 8px; display: flex; align-items: center; justify-content: center; font-size: 14px; flex-shrink: 0; font-weight: 500; }
+    .chat-av.user { background: #1e2761; color: #a5b4fc; }
+    .chat-av.ai { background: #0f6e56; color: #5dcaa5; }
+    .chat-bubble { background: #0f1117; border: 0.5px solid #2d3148; border-radius: 10px; padding: 10px 14px; font-size: 14px; color: #9ca3af; line-height: 1.6; max-width: 240px; }
+    .chat-bubble strong { color: #e2e8f0; font-weight: 500; }
+    .chat-input { display: flex; align-items: center; gap: 10px; margin-top: 12px; background: #0f1117; border: 0.5px solid #2d3148; border-radius: 10px; padding: 10px 14px; cursor: pointer; text-decoration: none; }
+    .chat-input span { font-size: 14px; color: #4b5563; flex: 1; }
+    .chat-input:hover { border-color: #4a90d9; }
+    .chat-send { width: 28px; height: 28px; background: #1e2761; border-radius: 8px; display: flex; align-items: center; justify-content: center; }
+    .chat-send i { font-size: 14px; color: #a5b4fc; }
+    
+    .planning-list { padding: 16px 20px; display: flex; flex-direction: column; gap: 10px; }
+    .planning-item { background: #0f1117; border: 0.5px solid #2d3148; border-radius: 10px; padding: 12px 16px; border-left: 4px solid; }
+    .planning-item.crit { border-left-color: #e24b4a; }
+    .planning-item.warn { border-left-color: #ef9f27; }
+    .planning-item.info { border-left-color: #378add; }
+    .planning-item.ok { border-left-color: #1d9e75; }
+    .planning-title { font-size: 14px; font-weight: 500; color: #e2e8f0; }
+    .planning-meta { font-size: 13px; color: #6b7280; margin-top: 3px; }
+    
+    @media (max-width: 1200px) {
+        .grid2 { grid-template-columns: 1fr; }
+        .grid3 { grid-template-columns: 1fr 1fr; }
+    }
+    @media (max-width: 768px) {
+        .kpi-row { grid-template-columns: 1fr 1fr; }
+        .grid3 { grid-template-columns: 1fr; }
+        .chat-bubble { max-width: 100%; }
+        .equip-row { flex-wrap: wrap; }
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="kpi-row">
+    <div class="kpi">
+        <div class="kpi-label">Total équipements</div>
+        <div class="kpi-icon blue"><i class="fas fa-microchip"></i></div>
+        <div class="kpi-val">{{ total_equipments_all|default:0 }}</div>
+        <div class="kpi-sub kpi-up"><i class="fas fa-check-circle"></i> {{ total_equipments|default:0 }} actifs</div>
+    </div>
+    <div class="kpi">
+        <div class="kpi-label">Maintenances</div>
+        <div class="kpi-icon amber"><i class="fas fa-tools"></i></div>
+        <div class="kpi-val">{{ total_maintenances|default:0 }}</div>
+        <div class="kpi-sub">{{ completed_count|default:0 }} terminées</div>
+    </div>
+    <div class="kpi">
+        <div class="kpi-label">En cours</div>
+        <div class="kpi-icon green"><i class="fas fa-spinner"></i></div>
+        <div class="kpi-val">{{ in_progress_count|default:0 }}</div>
+        <div class="kpi-sub">{{ pending_count|default:0 }} en attente</div>
+    </div>
+    <div class="kpi">
+        <div class="kpi-label">Échecs</div>
+        <div class="kpi-icon red"><i class="fas fa-exclamation-triangle"></i></div>
+        <div class="kpi-val">{{ failed_count|default:0 }}</div>
+        <div class="kpi-sub kpi-down">Interventions échouées</div>
+    </div>
+</div>
+
+<div class="grid2">
+    <div class="card">
+        <div class="card-header">
+            <div class="card-title"><i class="fas fa-microchip" style="color:#4a90d9"></i>Équipements — Suivi</div>
+            <a href="{% url 'assets:equipment_list' %}" class="card-action">Voir tout →</a>
+        </div>
+        <div class="equip-list">
+            {% for equipment in equipments|slice:":5" %}
+                <div class="equip-row">
+                    <div class="equip-icon 
+                        {% if equipment.equipment_type == 'AC' %}ac
+                        {% elif equipment.equipment_type == 'FR' %}fridge
+                        {% elif equipment.equipment_type == 'EL' %}gen
+                        {% else %}default{% endif %}">
+                        <i class="fas 
+                            {% if equipment.equipment_type == 'AC' %}fa-wind
+                            {% elif equipment.equipment_type == 'FR' %}fa-snowflake
+                            {% elif equipment.equipment_type == 'EL' %}fa-bolt
+                            {% else %}fa-cog{% endif %}"></i>
+                    </div>
+                    <div>
+                        <div class="equip-name">{{ equipment.name }}</div>
+                        <div class="equip-loc">{{ equipment.reference }} · {{ equipment.get_equipment_type_display }}</div>
+                    </div>
+                    <div class="equip-right">
+                        <div class="risk-bar-wrap">
+                            <div class="risk-bar" style="width:{% cycle '85' '72' '30' '58' '22' %}%;background:{% cycle '#e24b4a' '#ef9f27' '#1d9e75' '#ef9f27' '#1d9e75' %};"></div>
+                        </div>
+                        <div class="risk-val {% cycle 'high' 'med' 'low' 'med' 'low' %}">Risque {% cycle '85' '72' '30' '58' '22' %}/100</div>
+                    </div>
+                    <span class="status-pill {% cycle 'crit' 'warn' 'ok' 'maint' 'ok' %}">
+                        <span class="dot"></span>{% cycle 'Critique' 'Attention' 'OK' 'Maintenance' 'OK' %}
+                    </span>
+                </div>
+            {% empty %}
+                <div style="padding: 24px; text-align: center; color: #6b7280; font-size: 15px;">
+                    <i class="fas fa-microchip" style="font-size: 32px; display: block; margin-bottom: 12px;"></i>
+                    Aucun équipement enregistré
+                </div>
+            {% endfor %}
+        </div>
+    </div>
+
+    <div class="card">
+        <div class="card-header">
+            <div class="card-title"><i class="fas fa-bell" style="color:#ef9f27"></i>Alertes intelligentes</div>
+            <div class="card-action">{{ alerts|length }} actives</div>
+        </div>
+        <div class="alerts-list">
+            {% for alert in alerts|slice:":5" %}
+                <div class="alert-item">
+                    <div class="alert-dot {{ alert.level }}"></div>
+                    <div class="alert-text">
+                        <strong>{{ alert.title }}</strong>
+                        {{ alert.message }}
+                    </div>
+                    <div class="alert-time">{{ alert.time }}</div>
+                </div>
+            {% empty %}
+                <div style="padding: 24px; text-align: center; color: #6b7280; font-size: 15px;">
+                    <i class="fas fa-check-circle" style="font-size: 32px; color: #1d9e75; display: block; margin-bottom: 12px;"></i>
+                    Aucune alerte
+                </div>
+            {% endfor %}
+        </div>
+    </div>
+</div>
+
+<div class="grid3">
+    <div class="card">
+        <div class="card-header">
+            <div class="card-title"><i class="fas fa-chart-pie" style="color:#4a90d9"></i>Statut du parc</div>
+        </div>
+        <div class="mini-chart">
+            <div class="chart-bar-row">
+                <div class="chart-bar-label">En service</div>
+                <div class="chart-bar-bg"><div class="chart-bar-fill" style="width:83%;background:#1d9e75;"></div></div>
+                <div class="chart-bar-val" style="color:#1d9e75;">83%</div>
+            </div>
+            <div class="chart-bar-row">
+                <div class="chart-bar-label">Maintenance</div>
+                <div class="chart-bar-bg"><div class="chart-bar-fill" style="width:12%;background:#378add;"></div></div>
+                <div class="chart-bar-val" style="color:#378add;">12%</div>
+            </div>
+            <div class="chart-bar-row">
+                <div class="chart-bar-label">Attention</div>
+                <div class="chart-bar-bg"><div class="chart-bar-fill" style="width:3%;background:#ef9f27;"></div></div>
+                <div class="chart-bar-val" style="color:#ef9f27;">3%</div>
+            </div>
+            <div class="chart-bar-row">
+                <div class="chart-bar-label">Critique</div>
+                <div class="chart-bar-bg"><div class="chart-bar-fill" style="width:2%;background:#e24b4a;"></div></div>
+                <div class="chart-bar-val" style="color:#e24b4a;">2%</div>
+            </div>
+            <div style="margin-top:16px;padding-top:16px;border-top:0.5px solid #2d3148;">
+                <div style="font-size:13px;color:#6b7280;">Total équipements</div>
+                <div style="font-size:24px;font-weight:600;color:#fff;margin-top:4px;">{{ total_equipments }} <span style="font-size:14px;color:#6b7280;">actifs</span></div>
+            </div>
+        </div>
+    </div>
+
+    <div class="card">
+        <div class="card-header">
+            <div class="card-title"><i class="fas fa-calendar" style="color:#a5b4fc"></i>Planning — Cette semaine</div>
+        </div>
+        <div class="planning-list">
+            {% for item in planning|slice:":4" %}
+                <div class="planning-item {{ item.level }}">
+                    <div class="planning-title">{{ item.title }}</div>
+                    <div class="planning-meta">{{ item.day }} · {{ item.tech }}</div>
+                </div>
+            {% empty %}
+                <div style="padding: 24px; text-align: center; color: #6b7280; font-size: 15px;">
+                    <i class="fas fa-calendar" style="font-size: 32px; display: block; margin-bottom: 12px;"></i>
+                    Aucun planning
+                </div>
+            {% endfor %}
+        </div>
+    </div>
+
+    <div class="card">
+        <div class="card-header">
+            <div class="card-title"><i class="fas fa-brain" style="color:#5dcaa5"></i>Assistant IA</div>
+            <a href="{% url 'assets:chat_view' %}" class="card-action">Chat →</a>
+        </div>
+        <div class="ai-chat">
+            <div class="chat-msg">
+                <div class="chat-av user">TG</div>
+                <div class="chat-bubble">Le climatiseur affiche <strong>erreur E4</strong>. Que faire ?</div>
+            </div>
+            <div class="chat-msg">
+                <div class="chat-av ai"><i class="fas fa-robot" style="font-size:16px"></i></div>
+                <div class="chat-bubble">
+                    <strong>Erreur E4 — Daikin</strong> : défaut de communication.<br>
+                    1. Couper l'alimentation.<br>
+                    2. Vérifier le câble signal.<br>
+                    3. Redémarrer.<br>
+                    Si persistant → vérifier la carte PCB.
+                </div>
+            </div>
+            <a href="{% url 'assets:chat_view' %}" class="chat-input">
+                <span>Posez votre question technique...</span>
+                <div class="chat-send"><i class="fas fa-arrow-right"></i></div>
+            </a>
+        </div>
+    </div>
+</div>
+{% endblock %}

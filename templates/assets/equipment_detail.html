@@ -1,0 +1,299 @@
+{% extends 'base.html' %}
+
+{% block title %}{{ equipment.name }}{% endblock %}
+
+{% block page_title %}<i class="fas fa-microchip" style="color:#4a90d9;"></i> {{ equipment.name }}{% endblock %}
+{% block page_sub %}{{ equipment.reference }} · {{ equipment.get_equipment_type_display }}{% endblock %}
+
+{% block topbar_actions %}
+    <a href="{% url 'assets:chat_view_equipment' equipment.id %}" class="tb-btn primary"><i class="fas fa-robot"></i>Chat IA</a>
+    <a href="{% url 'assets:maintenance_add' equipment.id %}" class="tb-btn success"><i class="fas fa-plus"></i>Maintenance</a>
+    <a href="{% url 'assets:equipment_list' %}" class="tb-btn"><i class="fas fa-arrow-left"></i>Retour</a>
+{% endblock %}
+
+{% block extra_css %}
+<style>
+    .hero-card { background: #1a1d27; border: 0.5px solid #2d3148; border-radius: 12px; overflow: hidden; margin-bottom: 24px; }
+    .hero-top { background: #141728; padding: 24px 28px; display: flex; align-items: flex-start; gap: 24px; border-bottom: 0.5px solid #2d3148; flex-wrap: wrap; }
+    .equip-avatar { width: 72px; height: 72px; border-radius: 14px; background: #0c447c22; display: flex; align-items: center; justify-content: center; font-size: 32px; flex-shrink: 0; color: #4a90d9; border: 0.5px solid #185fa540; }
+    .equip-main { flex: 1; min-width: 200px; }
+    .equip-title { font-size: 24px; font-weight: 600; color: #fff; }
+    .equip-sub { font-size: 15px; color: #6b7280; margin-top: 4px; }
+    .equip-tags { display: flex; gap: 10px; margin-top: 12px; flex-wrap: wrap; }
+    .tag { font-size: 12px; border-radius: 20px; padding: 5px 14px; font-weight: 500; display: inline-flex; align-items: center; gap: 6px; }
+    .tag.blue { background: #0c447c28; color: #378add; border: 0.5px solid #185fa540; }
+    .tag.gray { background: #2d3148; color: #9ca3af; }
+    .tag.green { background: #0f6e5620; color: #1d9e75; border: 0.5px solid #0f6e5640; }
+    .tag.amber { background: #85500b20; color: #ef9f27; border: 0.5px solid #85500b40; }
+    .tag.red { background: #a32d2d20; color: #e24b4a; border: 0.5px solid #a32d2d40; }
+    
+    .status-area { display: flex; flex-direction: column; align-items: flex-end; gap: 10px; }
+    .status-big { display: flex; align-items: center; gap: 10px; font-size: 15px; font-weight: 500; padding: 8px 18px; border-radius: 24px; }
+    .status-big.ok { background: #0f6e5620; color: #1d9e75; border: 0.5px solid #0f6e5640; }
+    .status-big.crit { background: #a32d2d20; color: #e24b4a; border: 0.5px solid #a32d2d50; }
+    .status-dot { width: 10px; height: 10px; border-radius: 50%; background: currentColor; }
+    
+    .hero-bottom { padding: 20px 28px; display: grid; grid-template-columns: repeat(4, minmax(0,1fr)); gap: 0; }
+    .info-cell { padding: 0 20px 0 0; border-right: 0.5px solid #2d3148; }
+    .info-cell:first-child { padding-left: 0; }
+    .info-cell:last-child { border-right: none; padding-right: 0; }
+    .info-label { font-size: 12px; color: #6b7280; text-transform: uppercase; letter-spacing: 0.7px; margin-bottom: 4px; font-weight: 600; }
+    .info-val { font-size: 16px; color: #e2e8f0; font-weight: 500; }
+    .info-sub { font-size: 13px; color: #6b7280; margin-top: 3px; }
+    
+    .grid2 { display: grid; grid-template-columns: 1fr 360px; gap: 18px; }
+    .grid-full { display: grid; grid-template-columns: 1fr; gap: 18px; margin-top: 18px; }
+    
+    .card { background: #1a1d27; border: 0.5px solid #2d3148; border-radius: 12px; }
+    .card-header { padding: 16px 20px; border-bottom: 0.5px solid #2d3148; display: flex; align-items: center; justify-content: space-between; }
+    .card-title { font-size: 16px; font-weight: 500; color: #e2e8f0; display: flex; align-items: center; gap: 10px; }
+    .card-action { font-size: 14px; color: #4a90d9; cursor: pointer; text-decoration: none; }
+    
+    .spec-table { padding: 4px 0; }
+    .spec-row { display: flex; align-items: center; padding: 12px 20px; border-bottom: 0.5px solid #1f2235; }
+    .spec-row:last-child { border-bottom: none; }
+    .spec-key { font-size: 14px; color: #6b7280; width: 160px; flex-shrink: 0; }
+    .spec-val { font-size: 15px; color: #e2e8f0; font-weight: 500; }
+    
+    .hist-list { padding: 4px 0; }
+    .hist-item { display: flex; gap: 14px; padding: 14px 20px; border-bottom: 0.5px solid #1f2235; }
+    .hist-item:last-child { border-bottom: none; }
+    .hist-dot { width: 40px; height: 40px; border-radius: 50%; display: flex; align-items: center; justify-content: center; flex-shrink: 0; font-size: 15px; }
+    .hist-dot.ok { background: #0f6e5630; color: #1d9e75; border: 2px solid #1d9e75; }
+    .hist-dot.warn { background: #85500b30; color: #ef9f27; border: 2px solid #ef9f27; }
+    .hist-dot.crit { background: #a32d2d30; color: #e24b4a; border: 2px solid #e24b4a; }
+    .hist-dot.info { background: #185fa530; color: #378add; border: 2px solid #378add; }
+    .hist-body { flex: 1; }
+    .hist-title { font-size: 15px; color: #e2e8f0; font-weight: 500; }
+    .hist-desc { font-size: 14px; color: #6b7280; margin-top: 3px; line-height: 1.5; }
+    .hist-meta { display: flex; align-items: center; gap: 12px; margin-top: 6px; flex-wrap: wrap; }
+    .hist-date { font-size: 13px; color: #4b5563; }
+    .hist-tech { font-size: 13px; background: #2d3148; color: #9ca3af; border-radius: 20px; padding: 3px 12px; }
+    
+    .badge-status { display: inline-block; padding: 4px 14px; border-radius: 14px; font-size: 13px; font-weight: 500; }
+    .badge-status.completed { background: #0f6e5620; color: #1d9e75; }
+    .badge-status.in_progress { background: #85500b20; color: #ef9f27; }
+    .badge-status.failed { background: #a32d2d20; color: #e24b4a; }
+    .badge-status.pending { background: #185fa520; color: #378add; }
+    
+    .empty-state { text-align: center; padding: 48px 20px; }
+    .empty-state i { font-size: 56px; color: #2d3148; margin-bottom: 16px; display: block; }
+    .empty-state h3 { color: #e2e8f0; font-size: 18px; margin-bottom: 8px; }
+    .empty-state p { color: #6b7280; font-size: 15px; }
+    
+    .ai-panel { padding: 20px; }
+    .ai-suggestion { background: #0f1117; border: 0.5px solid #2d3148; border-radius: 10px; padding: 16px; margin-bottom: 16px; }
+    .ai-suggestion-label { font-size: 13px; color: #6b7280; margin-bottom: 6px; }
+    .ai-suggestion-label i { color: #5dcaa5; }
+    .ai-suggestion-text { font-size: 15px; color: #e2e8f0; }
+    .ai-suggestion-sub { font-size: 13px; color: #6b7280; display: block; margin-top: 4px; }
+    
+    .ai-cta { background: #1e2761; border: 0.5px solid #3d4a8a; border-radius: 10px; padding: 16px; display: flex; align-items: center; gap: 14px; cursor: pointer; transition: all 0.2s; }
+    .ai-cta:hover { background: #2a3580; }
+    .ai-cta i { font-size: 22px; color: #a5b4fc; }
+    .ai-cta-text { flex: 1; }
+    .ai-cta-text .t { font-size: 15px; color: #a5b4fc; font-weight: 500; }
+    .ai-cta-text .s { font-size: 13px; color: #6b7280; margin-top: 2px; }
+    .ai-cta-arrow { color: #4a90d9; font-size: 18px; }
+    
+    @media (max-width: 1024px) {
+        .grid2 { grid-template-columns: 1fr; }
+        .hero-bottom { grid-template-columns: 1fr 1fr; gap: 20px; }
+        .info-cell { border-right: none; padding: 0; }
+    }
+    @media (max-width: 768px) {
+        .hero-top { flex-direction: column; align-items: stretch; padding: 20px; }
+        .status-area { align-items: flex-start; width: 100%; }
+        .hero-bottom { grid-template-columns: 1fr; padding: 16px 20px; }
+        .spec-row { flex-direction: column; align-items: flex-start; gap: 4px; }
+        .spec-key { width: 100%; }
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="hero-card">
+    <div class="hero-top">
+        <div class="equip-avatar">
+            <i class="fas {% if equipment.equipment_type == 'AC' %}fa-wind{% elif equipment.equipment_type == 'FR' %}fa-snowflake{% elif equipment.equipment_type == 'EL' %}fa-bolt{% else %}fa-cog{% endif %}"></i>
+        </div>
+        <div class="equip-main">
+            <div class="equip-title">{{ equipment.name }}</div>
+            <div class="equip-sub">{{ equipment.reference }} · {{ equipment.get_equipment_type_display }}</div>
+            <div class="equip-tags">
+                <span class="tag blue"><i class="fas fa-tag"></i>{{ equipment.get_equipment_type_display }}</span>
+                <span class="tag gray"><i class="fas fa-calendar"></i>Installé le {{ equipment.installation_date|date:"d/m/Y" }}</span>
+                <span class="tag {% if equipment.is_active %}green{% else %}red{% endif %}">
+                    <i class="fas {% if equipment.is_active %}fa-check-circle{% else %}fa-times-circle{% endif %}"></i>
+                    {% if equipment.is_active %}Actif{% else %}Inactif{% endif %}
+                </span>
+            </div>
+        </div>
+        <div class="status-area">
+            <div class="status-big {% if equipment.is_active %}ok{% else %}crit{% endif %}">
+                <span class="status-dot"></span>
+                {% if equipment.is_active %}En service{% else %}Hors service{% endif %}
+            </div>
+            <div style="font-size:13px;color:#6b7280;">
+                <i class="fas fa-clock"></i> Dernière mise à jour : {{ equipment.updated_at|date:"d/m/Y H:i" }}
+            </div>
+        </div>
+    </div>
+    <div class="hero-bottom">
+        <div class="info-cell">
+            <div class="info-label"><i class="fas fa-tools"></i> Maintenances</div>
+            <div class="info-val">{{ maintenance_logs|length }}</div>
+            <div class="info-sub">Interventions totales</div>
+        </div>
+        <div class="info-cell">
+            <div class="info-label"><i class="fas fa-calendar-day"></i> Dernière maintenance</div>
+            <div class="info-val">
+                {% if maintenance_logs %}
+                    {{ maintenance_logs.first.intervention_date|date:"d/m/Y" }}
+                {% else %}
+                    Aucune
+                {% endif %}
+            </div>
+            <div class="info-sub">
+                {% if maintenance_logs %}
+                    Il y a {{ maintenance_logs.first.intervention_date|timesince }}
+                {% endif %}
+            </div>
+        </div>
+        <div class="info-cell">
+            <div class="info-label"><i class="fas fa-user"></i> Dernier technicien</div>
+            <div class="info-val">
+                {% if maintenance_logs %}
+                    {{ maintenance_logs.first.technician_name }}
+                {% else %}
+                    —
+                {% endif %}
+            </div>
+        </div>
+        <div class="info-cell">
+            <div class="info-label"><i class="fas fa-calendar-plus"></i> Installation</div>
+            <div class="info-val">{{ equipment.installation_date|date:"d/m/Y" }}</div>
+            <div class="info-sub">Il y a {{ equipment.installation_date|timesince }}</div>
+        </div>
+    </div>
+</div>
+
+<div class="grid2">
+    <div class="card">
+        <div class="card-header">
+            <div class="card-title"><i class="fas fa-list-details" style="color:#a5b4fc;"></i>Spécifications techniques</div>
+        </div>
+        <div class="spec-table">
+            <div class="spec-row"><span class="spec-key"><i class="fas fa-tag"></i> Nom</span><span class="spec-val">{{ equipment.name }}</span></div>
+            <div class="spec-row"><span class="spec-key"><i class="fas fa-barcode"></i> Référence</span><span class="spec-val">{{ equipment.reference }}</span></div>
+            <div class="spec-row"><span class="spec-key"><i class="fas fa-category"></i> Type</span><span class="spec-val">{{ equipment.get_equipment_type_display }}</span></div>
+            <div class="spec-row"><span class="spec-key"><i class="fas fa-calendar"></i> Installation</span><span class="spec-val">{{ equipment.installation_date|date:"d/m/Y" }}</span></div>
+            <div class="spec-row">
+                <span class="spec-key"><i class="fas fa-info-circle"></i> Statut</span>
+                <span class="spec-val">
+                    {% if equipment.is_active %}
+                        <span class="badge-status completed"><i class="fas fa-check-circle"></i> Actif</span>
+                    {% else %}
+                        <span class="badge-status failed"><i class="fas fa-times-circle"></i> Inactif</span>
+                    {% endif %}
+                </span>
+            </div>
+            <div class="spec-row">
+                <span class="spec-key"><i class="fas fa-align-left"></i> Description</span>
+                <span class="spec-val">{{ equipment.description|default:"Aucune description" }}</span>
+            </div>
+        </div>
+    </div>
+
+    <div class="card">
+        <div class="card-header">
+            <div class="card-title"><i class="fas fa-brain" style="color:#5dcaa5;"></i>Assistant IA</div>
+            <a href="{% url 'assets:chat_view_equipment' equipment.id %}" class="card-action">Chat →</a>
+        </div>
+        <div class="ai-panel">
+            <div class="ai-suggestion">
+                <div class="ai-suggestion-label"><i class="fas fa-robot"></i> Suggestion IA</div>
+                <div class="ai-suggestion-text">
+                    {% if maintenance_logs %}
+                        Dernière intervention : {{ maintenance_logs.first.get_maintenance_type_display }}
+                        <span class="ai-suggestion-sub">
+                            {{ maintenance_logs.first.intervention_date|timesince }}
+                        </span>
+                    {% else %}
+                        <span style="color:#6b7280;">Aucune maintenance enregistrée.</span>
+                    {% endif %}
+                </div>
+            </div>
+            <div class="ai-cta" onclick="window.location.href='{% url 'assets:chat_view_equipment' equipment.id %}'">
+                <i class="fas fa-robot"></i>
+                <div class="ai-cta-text">
+                    <div class="t">Interroger l'assistant</div>
+                    <div class="s">Diagnostic · Codes erreur · Procédures</div>
+                </div>
+                <i class="fas fa-arrow-right ai-cta-arrow"></i>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="grid-full">
+    <div class="card">
+        <div class="card-header">
+            <div class="card-title"><i class="fas fa-history" style="color:#4a90d9;"></i>Historique des maintenances</div>
+            <a href="{% url 'assets:maintenance_add' equipment.id %}" class="card-action"><i class="fas fa-plus"></i> Ajouter</a>
+        </div>
+        {% if maintenance_logs %}
+            <div class="hist-list">
+                {% for log in maintenance_logs %}
+                    <div class="hist-item">
+                        <div class="hist-dot 
+                            {% if log.status == 'COMPLETED' %}ok
+                            {% elif log.status == 'IN_PROGRESS' %}warn
+                            {% elif log.status == 'FAILED' %}crit
+                            {% else %}info{% endif %}">
+                            <i class="fas 
+                                {% if log.status == 'COMPLETED' %}fa-check
+                                {% elif log.status == 'IN_PROGRESS' %}fa-spinner
+                                {% elif log.status == 'FAILED' %}fa-times
+                                {% else %}fa-clock{% endif %}"></i>
+                        </div>
+                        <div class="hist-body">
+                            <div class="hist-title">{{ log.get_maintenance_type_display }}</div>
+                            <div class="hist-desc">{{ log.description }}</div>
+                            <div class="hist-meta">
+                                <span class="hist-date"><i class="far fa-calendar-alt"></i> {{ log.intervention_date|date:"d/m/Y H:i" }}</span>
+                                <span class="hist-tech"><i class="fas fa-user"></i> {{ log.technician_name }}</span>
+                                <span class="badge-status {{ log.status|lower }}">
+                                    {{ log.get_status_display }}
+                                </span>
+                                {% if log.duration_hours %}
+                                    <span style="font-size:13px;color:#4b5563;"><i class="fas fa-clock"></i> {{ log.duration_hours }}h</span>
+                                {% endif %}
+                            </div>
+                            {% if log.parts_used %}
+                                <div style="font-size:13px;color:#6b7280;margin-top:4px;">
+                                    <i class="fas fa-tools"></i> Pièces : {{ log.parts_used }}
+                                </div>
+                            {% endif %}
+                            {% if log.notes %}
+                                <div style="font-size:13px;color:#4b5563;margin-top:3px;font-style:italic;">
+                                    {{ log.notes }}
+                                </div>
+                            {% endif %}
+                        </div>
+                    </div>
+                {% endfor %}
+            </div>
+        {% else %}
+            <div class="empty-state">
+                <i class="fas fa-tools"></i>
+                <h3>Aucune maintenance enregistrée</h3>
+                <p>Cet équipement n'a pas encore d'historique de maintenance.</p>
+                <a href="{% url 'assets:maintenance_add' equipment.id %}" class="tb-btn success" style="margin-top:16px;display:inline-flex;">
+                    <i class="fas fa-plus"></i> Ajouter une maintenance
+                </a>
+            </div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}

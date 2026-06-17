@@ -1,0 +1,267 @@
+{% extends 'base.html' %}
+
+{% block title %}Historique des maintenances{% endblock %}
+
+{% block page_title %}<i class="fas fa-tools" style="color:#ef9f27;"></i> Historique des maintenances{% endblock %}
+{% block page_sub %}Toutes les interventions sur les équipements{% endblock %}
+
+{% block topbar_actions %}
+    {% if equipment %}
+        <a href="{% url 'assets:maintenance_add' equipment.id %}" class="tb-btn success"><i class="fas fa-plus"></i>Nouvelle maintenance</a>
+        <a href="{% url 'assets:equipment_detail' equipment.id %}" class="tb-btn"><i class="fas fa-arrow-left"></i>Retour</a>
+    {% else %}
+        <a href="{% url 'assets:equipment_list' %}" class="tb-btn"><i class="fas fa-arrow-left"></i>Retour</a>
+    {% endif %}
+{% endblock %}
+
+{% block extra_css %}
+<style>
+    .stats-row { display: grid; grid-template-columns: repeat(4, minmax(0,1fr)); gap: 18px; margin-bottom: 24px; }
+    .stat-card { background: #1a1d27; border: 0.5px solid #2d3148; border-radius: 12px; padding: 20px; }
+    .stat-label { font-size: 12px; color: #6b7280; text-transform: uppercase; letter-spacing: 0.8px; margin-bottom: 6px; font-weight: 600; }
+    .stat-value { font-size: 28px; font-weight: 600; color: #fff; }
+    .stat-icon { float: right; width: 40px; height: 40px; border-radius: 10px; display: flex; align-items: center; justify-content: center; font-size: 18px; margin-top: -32px; }
+    .stat-icon.blue { background: #0c447c22; color: #4a90d9; }
+    .stat-icon.green { background: #0f6e5622; color: #1d9e75; }
+    .stat-icon.amber { background: #85500b22; color: #ef9f27; }
+    .stat-icon.red { background: #a32d2d22; color: #e24b4a; }
+    
+    .filter-bar { display: flex; flex-wrap: wrap; gap: 14px; margin-bottom: 20px; align-items: center; }
+    .filter-bar select { padding: 10px 16px; background: #0f1117; border: 0.5px solid #2d3148; border-radius: 10px; color: #e2e8f0; font-size: 14px; min-width: 160px; cursor: pointer; }
+    .filter-bar select:focus { outline: none; border-color: #4a90d9; }
+    .filter-bar select option { background: #1a1d27; padding: 8px; }
+    .filter-bar label { font-size: 14px; color: #6b7280; font-weight: 500; }
+    
+    .table-card { background: #1a1d27; border: 0.5px solid #2d3148; border-radius: 12px; overflow: hidden; }
+    .table-header { padding: 16px 20px; border-bottom: 0.5px solid #2d3148; display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 12px; }
+    .table-title { font-size: 16px; font-weight: 500; color: #e2e8f0; display: flex; align-items: center; gap: 10px; }
+    .table-search { display: flex; align-items: center; gap: 10px; background: #0f1117; border: 0.5px solid #2d3148; border-radius: 10px; padding: 8px 14px; }
+    .table-search input { background: transparent; border: none; color: #e2e8f0; font-size: 15px; outline: none; padding: 4px 0; min-width: 200px; }
+    .table-search input::placeholder { color: #4b5563; }
+    .table-search i { color: #4b5563; font-size: 16px; }
+    
+    .table-wrap { overflow-x: auto; }
+    table { width: 100%; border-collapse: collapse; }
+    thead { background: #0f1117; }
+    th { padding: 14px 20px; text-align: left; font-size: 12px; text-transform: uppercase; letter-spacing: 0.8px; color: #6b7280; font-weight: 600; border-bottom: 0.5px solid #2d3148; }
+    td { padding: 14px 20px; border-bottom: 0.5px solid #1f2235; font-size: 14px; color: #e2e8f0; }
+    tr:hover td { background: #1f2235; }
+    tr:last-child td { border-bottom: none; }
+    
+    .equip-cell { display: flex; align-items: center; gap: 10px; }
+    .equip-icon { width: 34px; height: 34px; border-radius: 8px; display: flex; align-items: center; justify-content: center; font-size: 14px; flex-shrink: 0; background: #2d3148; color: #9ca3af; }
+    .equip-cell a { color: #e2e8f0; text-decoration: none; font-weight: 500; }
+    .equip-cell a:hover { color: #4a90d9; }
+    
+    .badge-status { display: inline-block; padding: 4px 14px; border-radius: 14px; font-size: 13px; font-weight: 500; }
+    .badge-status.completed { background: #0f6e5620; color: #1d9e75; }
+    .badge-status.in_progress { background: #85500b20; color: #ef9f27; }
+    .badge-status.failed { background: #a32d2d20; color: #e24b4a; }
+    .badge-status.pending { background: #185fa520; color: #378add; }
+    
+    .badge-type { display: inline-block; padding: 3px 12px; border-radius: 6px; font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px; }
+    .badge-type.preventive { background: #0c447c22; color: #4a90d9; }
+    .badge-type.corrective { background: #85500b22; color: #ef9f27; }
+    .badge-type.urgent { background: #a32d2d22; color: #e24b4a; }
+    
+    .btn-action { background: #1a1d27; border: 0.5px solid #2d3148; border-radius: 8px; padding: 6px 12px; color: #9ca3af; font-size: 14px; text-decoration: none; display: inline-flex; align-items: center; gap: 6px; transition: all 0.2s; }
+    .btn-action:hover { background: #1f2235; color: #e2e8f0; }
+    .btn-action.primary { color: #4a90d9; }
+    
+    .empty-state { text-align: center; padding: 60px 20px; }
+    .empty-state i { font-size: 56px; color: #2d3148; margin-bottom: 16px; display: block; }
+    .empty-state h3 { color: #e2e8f0; font-size: 20px; margin-bottom: 10px; }
+    .empty-state p { color: #6b7280; font-size: 15px; }
+    
+    @media (max-width: 1024px) {
+        .stats-row { grid-template-columns: 1fr 1fr; }
+    }
+    @media (max-width: 768px) {
+        .stats-row { grid-template-columns: 1fr; }
+        .table-header { flex-direction: column; align-items: stretch; }
+        .table-search { width: 100%; }
+        .table-search input { min-width: auto; width: 100%; }
+        .filter-bar { flex-direction: column; align-items: stretch; }
+        .filter-bar select { width: 100%; }
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="stats-row">
+    <div class="stat-card">
+        <div class="stat-icon blue"><i class="fas fa-tools"></i></div>
+        <div class="stat-label">Total interventions</div>
+        <div class="stat-value">{{ maintenance_logs|length }}</div>
+    </div>
+    <div class="stat-card">
+        <div class="stat-icon green"><i class="fas fa-check-circle"></i></div>
+        <div class="stat-label">Terminées</div>
+        <div class="stat-value">{{ completed_count|default:0 }}</div>
+    </div>
+    <div class="stat-card">
+        <div class="stat-icon amber"><i class="fas fa-spinner"></i></div>
+        <div class="stat-label">En cours</div>
+        <div class="stat-value">{{ in_progress_count|default:0 }}</div>
+    </div>
+    <div class="stat-card">
+        <div class="stat-icon red"><i class="fas fa-exclamation-triangle"></i></div>
+        <div class="stat-label">Échecs</div>
+        <div class="stat-value">{{ failed_count|default:0 }}</div>
+    </div>
+</div>
+
+<div class="filter-bar">
+    <label><i class="fas fa-filter"></i> Filtres :</label>
+    <select id="typeFilter" onchange="filterTable()">
+        <option value="">📋 Tous les types</option>
+        <option value="PREVENTIVE">🔧 Préventive</option>
+        <option value="CORRECTIVE">🛠️ Corrective</option>
+        <option value="URGENT">🚨 Urgente</option>
+    </select>
+    <select id="statusFilter" onchange="filterTable()">
+        <option value="">📊 Tous les statuts</option>
+        <option value="COMPLETED">✅ Terminé</option>
+        <option value="IN_PROGRESS">⏳ En cours</option>
+        <option value="PENDING">⏰ En attente</option>
+        <option value="FAILED">❌ Échec</option>
+    </select>
+    {% if not equipment %}
+        <select id="equipmentFilter" onchange="filterTable()">
+            <option value="">🏷️ Tous les équipements</option>
+            {% for eq in equipments %}
+                <option value="{{ eq.id }}">{{ eq.name }}</option>
+            {% endfor %}
+        </select>
+    {% endif %}
+</div>
+
+<div class="table-card">
+    <div class="table-header">
+        <div class="table-title"><i class="fas fa-list" style="color:#4a90d9;"></i>Historique des interventions</div>
+        <div class="table-search">
+            <i class="fas fa-search"></i>
+            <input type="text" placeholder="Rechercher..." id="searchInput" onkeyup="filterTable()">
+        </div>
+    </div>
+    <div class="table-wrap">
+        {% if maintenance_logs %}
+            <table id="maintenanceTable">
+                <thead>
+                    <tr>
+                        <th>Équipement</th>
+                        <th>Type</th>
+                        <th>Description</th>
+                        <th>Technicien</th>
+                        <th>Date</th>
+                        <th>Statut</th>
+                        <th style="text-align:right;">Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for log in maintenance_logs %}
+                        <tr data-type="{{ log.maintenance_type }}" data-status="{{ log.status }}" data-equipment="{{ log.equipment.id }}">
+                            <td>
+                                <div class="equip-cell">
+                                    <div class="equip-icon">
+                                        <i class="fas 
+                                            {% if log.equipment.equipment_type == 'AC' %}fa-wind
+                                            {% elif log.equipment.equipment_type == 'FR' %}fa-snowflake
+                                            {% elif log.equipment.equipment_type == 'EL' %}fa-bolt
+                                            {% else %}fa-cog{% endif %}"></i>
+                                    </div>
+                                    <a href="{% url 'assets:equipment_detail' log.equipment.id %}">
+                                        {{ log.equipment.name }}
+                                    </a>
+                                </div>
+                            </td>
+                            <td>
+                                <span class="badge-type {{ log.maintenance_type|lower }}">
+                                    {{ log.get_maintenance_type_display }}
+                                </span>
+                            </td>
+                            <td>
+                                <div style="max-width:220px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;" title="{{ log.description }}">
+                                    {{ log.description|truncatechars:50 }}
+                                </div>
+                            </td>
+                            <td>{{ log.technician_name }}</td>
+                            <td>
+                                <div style="font-size:14px;">{{ log.intervention_date|date:"d/m/Y" }}</div>
+                                <div style="font-size:12px;color:#4b5563;">{{ log.intervention_date|date:"H:i" }}</div>
+                            </td>
+                            <td>
+                                <span class="badge-status {{ log.status|lower }}">
+                                    <i class="fas 
+                                        {% if log.status == 'COMPLETED' %}fa-check-circle
+                                        {% elif log.status == 'IN_PROGRESS' %}fa-spinner
+                                        {% elif log.status == 'FAILED' %}fa-times-circle
+                                        {% else %}fa-clock{% endif %}" 
+                                        style="font-size:11px;"></i>
+                                    {{ log.get_status_display }}
+                                </span>
+                            </td>
+                            <td style="text-align:right;">
+                                <a href="{% url 'assets:equipment_detail' log.equipment.id %}" class="btn-action primary"><i class="fas fa-eye"></i></a>
+                            </td>
+                        </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        {% else %}
+            <div class="empty-state">
+                <i class="fas fa-tools"></i>
+                <h3>Aucune maintenance enregistrée</h3>
+                <p>{% if equipment %}Cet équipement n'a pas encore d'historique de maintenance.{% else %}Commencez par ajouter votre première intervention.{% endif %}</p>
+                {% if equipment %}
+                    <a href="{% url 'assets:maintenance_add' equipment.id %}" class="tb-btn success" style="margin-top:16px;display:inline-flex;">
+                        <i class="fas fa-plus"></i> Ajouter une maintenance
+                    </a>
+                {% endif %}
+            </div>
+        {% endif %}
+    </div>
+</div>
+
+<script>
+    function filterTable() {
+        const searchInput = document.getElementById('searchInput');
+        const typeFilter = document.getElementById('typeFilter');
+        const statusFilter = document.getElementById('statusFilter');
+        const equipFilter = document.getElementById('equipmentFilter');
+        
+        const search = searchInput ? searchInput.value.toLowerCase() : '';
+        const type = typeFilter ? typeFilter.value : '';
+        const status = statusFilter ? statusFilter.value : '';
+        const equip = equipFilter ? equipFilter.value : '';
+        
+        const table = document.getElementById('maintenanceTable');
+        if (!table) return;
+        const rows = table.getElementsByTagName('tr');
+        
+        for (let i = 1; i < rows.length; i++) {
+            const row = rows[i];
+            const cells = row.getElementsByTagName('td');
+            
+            let matchType = !type || row.dataset.type === type;
+            let matchStatus = !status || row.dataset.status === status;
+            let matchEquip = !equip || row.dataset.equipment === equip;
+            
+            let foundText = false;
+            if (search) {
+                for (let j = 0; j < cells.length; j++) {
+                    const text = cells[j].textContent.toLowerCase();
+                    if (text.indexOf(search) > -1) {
+                        foundText = true;
+                        break;
+                    }
+                }
+            } else {
+                foundText = true;
+            }
+            
+            row.style.display = (matchType && matchStatus && matchEquip && foundText) ? '' : 'none';
+        }
+    }
+</script>
+{% endblock %}
