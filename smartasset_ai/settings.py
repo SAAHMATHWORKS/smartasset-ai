@@ -16,7 +16,7 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 SECRET_KEY = os.getenv('SECRET_KEY', 'django-insecure-your-secret-key-here-change-in-production')
 DEBUG = os.getenv('DEBUG', 'False') == 'True'
 
-ALLOWED_HOSTS = ['*']  # Railway gère ça
+ALLOWED_HOSTS = ['*']
 
 # Application definition
 INSTALLED_APPS = [
@@ -26,13 +26,13 @@ INSTALLED_APPS = [
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
-    'whitenoise.runserver_nostatic',  # Pour les fichiers statiques
+    'whitenoise.runserver_nostatic',
     'assets',
 ]
 
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
-    'whitenoise.middleware.WhiteNoiseMiddleware',  # Pour les fichiers statiques
+    'whitenoise.middleware.WhiteNoiseMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.common.CommonMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',
@@ -63,7 +63,6 @@ TEMPLATES = [
 WSGI_APPLICATION = 'smartasset_ai.wsgi.application'
 
 # Database
-# Utiliser SQLite par défaut, ou PostgreSQL si DATABASE_URL est défini
 if 'DATABASE_URL' in os.environ:
     DATABASES = {
         'default': dj_database_url.config(
@@ -94,7 +93,7 @@ TIME_ZONE = 'Africa/Douala'
 USE_I18N = True
 USE_TZ = True
 
-# Static files (CSS, JavaScript, Images)
+# Static files
 STATIC_URL = '/static/'
 STATIC_ROOT = BASE_DIR / 'staticfiles'
 STATICFILES_DIRS = [BASE_DIR / 'static']
@@ -103,7 +102,7 @@ STATICFILES_STORAGE = 'whitenoise.storage.CompressedManifestStaticFilesStorage'
 # Default primary key field type
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
-# CSRF Trusted Origins (pour Railway)
+# CSRF Trusted Origins
 CSRF_TRUSTED_ORIGINS = [
     'https://*.railway.app',
     'http://*.railway.app',
