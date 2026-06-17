@@ -8,15 +8,15 @@ echo "✅ Dossiers créés"
 
 # Migrations
 echo "🔄 Application des migrations..."
-python manage.py migrate --noinput || echo "⚠️ Migration a rencontré un problème"
+python manage.py migrate --noinput || echo "⚠️ Problème lors des migrations"
 
-# Collectstatic (avec plus de visibilité)
+# Collect static
 echo "📁 Collecte des fichiers statiques..."
-python manage.py collectstatic --noinput --clear --verbosity=1 || echo "⚠️ Collectstatic a rencontré un problème"
+python manage.py collectstatic --noinput --clear --verbosity=1 || echo "⚠️ Problème lors de collectstatic"
 
 echo "✅ Collectstatic terminé"
-ls -la staticfiles/ || echo "Dossier staticfiles vide ou inexistant"
+ls -la staticfiles/ 2>/dev/null || echo "Dossier staticfiles vide"
 
-# Démarrage Gunicorn
-echo "🚀 Lancement de Gunicorn sur le port $PORT..."
+# Lancement du serveur
+echo "🚀 Démarrage de Gunicorn..."
 gunicorn smartasset_ai.wsgi:application --bind 0.0.0.0:$PORT --log-file - --access-logfile -
