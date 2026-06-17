@@ -2,17 +2,14 @@
 
 echo "🚀 Démarrage de SmartAsset AI sur Railway"
 
-# Créer les dossiers nécessaires
-mkdir -p staticfiles
+# Création des dossiers
+mkdir -p staticfiles static
 
-# Appliquer les migrations
 echo "🔄 Application des migrations..."
-python manage.py migrate --noinput
+python manage.py migrate --noinput || echo "⚠️  Migration skipped or failed"
 
-# Collecter les fichiers statiques
 echo "📁 Collecte des fichiers statiques..."
-python manage.py collectstatic --noinput --clear
+python manage.py collectstatic --noinput --clear --verbosity=2
 
-# Démarrage du serveur Gunicorn
-echo "✅ Démarrage du serveur sur le port $PORT"
-gunicorn smartasset_ai.wsgi:application --bind 0.0.0.0:$PORT --log-file -
+echo "✅ Démarrage de Gunicorn..."
+gunicorn smartasset_ai.wsgi:application --bind 0.0.0.0:$PORT --log-file - --access-logfile -
