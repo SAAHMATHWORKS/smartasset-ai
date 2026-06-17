@@ -19,7 +19,12 @@ else:
 SECRET_KEY = os.getenv('SECRET_KEY', 'django-insecure-your-secret-key-here')
 DEBUG = os.getenv('DEBUG', 'False') == 'True'
 
-ALLOWED_HOSTS = ['web-production-1500b.up.railway.app', '.railway.app']
+ALLOWED_HOSTS = [
+    'web-production-1500b.up.railway.app',
+    '.railway.app',
+    'localhost',
+    '127.0.0.1',
+]
 
 # Application definition
 INSTALLED_APPS = [

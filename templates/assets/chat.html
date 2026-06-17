@@ -86,6 +86,77 @@
     }
     .message .content strong { color: #fff; }
     
+    /* Style pour le Markdown */
+    .message .content h1 {
+        font-size: 1.4em;
+        color: #fff;
+        margin: 12px 0 8px 0;
+        border-bottom: 1px solid #2d3148;
+        padding-bottom: 4px;
+    }
+    .message .content h2 {
+        font-size: 1.2em;
+        color: #e2e8f0;
+        margin: 10px 0 6px 0;
+    }
+    .message .content h3 {
+        font-size: 1.1em;
+        color: #9ca3af;
+        margin: 8px 0 4px 0;
+    }
+    .message .content ul, .message .content ol {
+        padding-left: 20px;
+        margin: 6px 0;
+    }
+    .message .content li {
+        margin: 2px 0;
+        color: #9ca3af;
+    }
+    .message .content table {
+        border-collapse: collapse;
+        width: 100%;
+        margin: 8px 0;
+        font-size: 0.9em;
+    }
+    .message .content th {
+        background: #2d3148;
+        color: #e2e8f0;
+        padding: 6px 10px;
+        text-align: left;
+        border: 1px solid #2d3148;
+    }
+    .message .content td {
+        padding: 6px 10px;
+        border: 1px solid #2d3148;
+        color: #9ca3af;
+    }
+    .message .content blockquote {
+        border-left: 3px solid #4a90d9;
+        padding-left: 12px;
+        margin: 8px 0;
+        color: #6b7280;
+        font-style: italic;
+    }
+    .message .content code {
+        background: #0f1117;
+        padding: 2px 6px;
+        border-radius: 4px;
+        font-size: 0.9em;
+        color: #5dcaa5;
+    }
+    .message .content pre {
+        background: #0f1117;
+        padding: 10px;
+        border-radius: 6px;
+        overflow-x: auto;
+        margin: 8px 0;
+    }
+    .message .content hr {
+        border: none;
+        border-top: 1px solid #2d3148;
+        margin: 12px 0;
+    }
+    
     .message .time {
         font-size: 12px;
         color: #4b5563;
@@ -287,8 +358,22 @@
         </div>
     </div>
 </div>
+{% endblock %}
+
+{% block extra_js %}
+<!-- Charger la bibliothèque Markdown -->
+<script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
 
 <script>
+    // Configuration de marked
+    if (typeof marked !== 'undefined') {
+        marked.setOptions({
+            breaks: true,
+            gfm: true,
+            tables: true
+        });
+    }
+
     let currentEquipmentId = {% if equipment %}{{ equipment.id }}{% else %}null{% endif %};
     let sessionId = 'session_' + Date.now();
     let isProcessing = false;
@@ -373,11 +458,37 @@
         
         const div = document.createElement('div');
         div.className = 'message ' + sender.toLowerCase();
+        
+        let formattedContent = content;
+        if (sender === 'AI') {
+            try {
+                if (typeof marked !== 'undefined') {
+                    // Convertir Markdown en HTML
+                    formattedContent = marked.parse(content);
+                } else {
+                    // Fallback simple
+                    formattedContent = content
+                        .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
+                        .replace(/\*(.*?)\*/g, '<em>$1</em>')
+                        .replace(/^# (.*?)$/gm, '<h1>$1</h1>')
+                        .replace(/^## (.*?)$/gm, '<h2>$1</h2>')
+                        .replace(/^### (.*?)$/gm, '<h3>$1</h3>')
+                        .replace(/^-\s(.*?)$/gm, '<li>$1</li>')
+                        .replace(/^\d+\.\s(.*?)$/gm, '<li>$1</li>')
+                        .replace(/\n/g, '<br>');
+                }
+            } catch(e) {
+                formattedContent = content.replace(/\n/g, '<br>');
+            }
+        } else {
+            formattedContent = content.replace(/\n/g, '<br>');
+        }
+        
         div.innerHTML = `
             <div class="sender">
                 ${sender === 'USER' ? '<i class="fas fa-user-circle"></i> Technicien' : '<i class="fas fa-robot"></i> Assistant IA'}
             </div>
-            <div class="content">${content.replace(/\n/g, '<br>')}</div>
+            <div class="content">${formattedContent}</div>
             <div class="time">${new Date().toLocaleTimeString('fr-FR', {hour: '2-digit', minute: '2-digit'})}</div>
         `;
         container.appendChild(div);
